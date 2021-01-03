@@ -1,28 +1,45 @@
-function deepClone(source) {
-  if (source instanceof Object) {
-    if (source instanceof Array) {
-      const dist = new Array()
-      for (let key in source) {
-        dist[key] = deepClone(source[key])
-      }
-      return dist
-    } else if (source instanceof Function) {
-      const dist = function() {
-        return source.apply(this, arguments)
-      }
-      for (let key in source) {
-        dist[key] = deepClone(source[key])
-      }
-      return dist
-    } else {
-      const dist = new Object()
-      for (let key in source) {
-        dist[key] = deepClone(source[key])
-      }
-      return dist
-    }
+class DeepCloner {
+  constructor() {
+    this.cache = [];
   }
-  return source
+  clone(source) {
+    if (source instanceof Object) {
+      let cachedDist = this.findCache(source);
+      if (cachedDist) {
+        return cachedDist;
+      } else {
+        let dist;
+        if (source instanceof Array) {
+          dist = new Array();
+        } else if (source instanceof Function) {
+          dist = function () {
+            return source.apply(this, arguments);
+          };
+        } else if (source instanceof RegExp) {
+          dist = new RegExp(source.source, source.flags);
+        } else if (source instanceof Date) {
+          dist = new Date(source);
+        } else {
+          dist = new Object();
+        }
+
+        this.cache.push([source, dist]);
+        for (let key in source)
+          if (source.hasOwnProperty(key)) {
+            dist[key] = this.clone(source[key]);
+          }
+        return dist;
+      }
+    }
+    return source;
+  }
+  findCache(source) {
+    for (let i = 0; i < this.cache.length; i++)
+      if (this.cache[i][0] === source) {
+        return this.cache[i][1];
+      }
+    return undefined;
+  }
 }
 
-module.exports = deepClone
+module.exports = DeepCloner;
